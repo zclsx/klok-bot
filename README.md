@@ -1,6 +1,7 @@
 # KlokApp 自动化工具 🚀
 
-官网：https://klokapp.ai?referral_code=54A6MM4Q
+官网：https://klokapp.ai?referral_code=69NRRGJ
+
 一个基于终端的KlokApp AI聊天自动化工具，支持会话令牌认证和强大的重试机制。
 
 ---
