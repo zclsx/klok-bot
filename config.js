@@ -35,11 +35,16 @@ module.exports = {
   },
 
   // 请求间隔配置
-  MIN_CHAT_DELAY: 160000, // 最小聊天延迟(2分40秒)
-  MAX_CHAT_DELAY: 200000, // 最大聊天延迟(3分20秒)
+  MIN_CHAT_DELAY: 5000,      // 最小聊天延迟(5秒)
+  MAX_CHAT_DELAY: 10000,     // 最大聊天延迟(10秒)
   
-  // Gemini API调用配置
-  GEMINI_REQUEST_TIMEOUT: 30000, // 增加Gemini API超时时间到30秒
-  GEMINI_RETRY_COUNT: 2,     // Gemini API调用失败时的重试次数
-  GEMINI_RETRY_DELAY: 5000,  // Gemini API调用失败后的重试延迟(5秒)
+  // API请求配置
+  REQUEST_TIMEOUT: 30000,     // API请求超时时间(30秒)
+  REQUEST_RETRY_COUNT: 3,     // 请求失败时的重试次数
+  REQUEST_RETRY_DELAY: 2000,  // 重试延迟(2秒)
+  
+  // Gemini API配置
+  GEMINI_REQUEST_TIMEOUT: 30000, // Gemini API超时时间(30秒)
+  GEMINI_RETRY_COUNT: 2,         // 失败时重试次数
+  GEMINI_RETRY_DELAY: 2000,      // 重试延迟(2秒)
 };
