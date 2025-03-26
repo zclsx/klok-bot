@@ -2,6 +2,7 @@ const axios = require("axios");
 const { log, logToFile } = require("../utils");
 const config = require("../../config");
 const { readFile, fileExists } = require("../utils");
+const HttpsProxyAgent = require('https-proxy-agent');
 
 let geminiApiKey = null;
 
@@ -26,32 +27,61 @@ function getApiKey() {
 async function generateResponse(prompt, model = config.GEMINI_MODEL) {
   try {
     const apiKey = getApiKey();
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     
+    // 根据配置决定使用接口转发、直接调用或代理
+    let apiUrl;
+    let requestConfig = {
+      headers: {
+        "Content-Type": "application/json"
+      },
+      timeout: config.GEMINI_REQUEST_TIMEOUT || 30000
+    };
+    
+    // 创建请求负载
     const payload = {
       contents: [{
         parts: [{ text: prompt }]
       }]
     };
-
-    log(`正在调用 Gemini API (${model})...`, "info");
+    
+    if (config.USE_API_FORWARDING) {
+      // 使用接口转发方式
+      apiUrl = `${config.API_FORWARDING_BASE_PATH}/gemini`;
+      // 将API密钥添加到请求头
+      requestConfig.headers["X-API-KEY"] = apiKey;
+      // 添加模型信息到请求
+      payload.model = model;
+      
+      log(`正在通过接口转发调用 Gemini API (${model})...`, "info");
+    } else {
+      // 直接调用Gemini API
+      apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+      
+      // 如果启用了代理
+      if (config.USE_PROXY) {
+        log(`正在通过代理调用 Gemini API (${model})...`, "info");
+        const httpsAgent = new HttpsProxyAgent(config.PROXY_URL);
+        requestConfig.httpsAgent = httpsAgent;
+      } else {
+        log(`正在直接调用 Gemini API (${model})...`, "info");
+      }
+    }
+    
     logToFile(`Gemini API 请求`, {
+      useForwarding: config.USE_API_FORWARDING,
+      useProxy: !config.USE_API_FORWARDING && config.USE_PROXY,
       model,
       promptLength: prompt.length,
       promptPreview: prompt.substring(0, 100) + (prompt.length > 100 ? "..." : "")
     });
 
-    const response = await axios.post(apiUrl, payload, {
-      headers: {
-        "Content-Type": "application/json"
-      },
-      timeout: 30000
-    });
+    const response = await axios.post(apiUrl, payload, requestConfig);
 
     if (response.data && response.data.candidates && response.data.candidates.length > 0) {
       const text = response.data.candidates[0].content.parts[0].text;
       
       logToFile("Gemini API response received", {
+        useForwarding: config.USE_API_FORWARDING,
         model,
         responseLength: text.length,
         responsePreview: text.substring(0, 100) + (text.length > 100 ? "..." : ""),
@@ -82,8 +112,17 @@ async function generateUserMessage() {
   while (retryCount <= maxRetries) {
     try {
       const apiKey = getApiKey();
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.GEMINI_MODEL}:generateContent?key=${apiKey}`;
       
+      // 请求配置
+      let apiUrl;
+      let requestConfig = {
+        headers: {
+          "Content-Type": "application/json"
+        },
+        timeout: config.GEMINI_REQUEST_TIMEOUT || 30000
+      };
+      
+      // 创建请求负载
       const payload = {
         contents: [{
           parts: [{ 
@@ -91,15 +130,29 @@ async function generateUserMessage() {
           }]
         }]
       };
+      
+      if (config.USE_API_FORWARDING) {
+        // 使用接口转发
+        apiUrl = `${config.API_FORWARDING_BASE_PATH}/gemini`;
+        requestConfig.headers["X-API-KEY"] = apiKey;
+        payload.model = config.GEMINI_MODEL;
+        
+        log(`正在通过接口转发使用Gemini生成随机问题...`, "info");
+      } else {
+        // 直接调用API
+        apiUrl = `https://generativelanguage.googleapis.com/v1/models/${config.GEMINI_MODEL}:generateContent?key=${apiKey}`;
+        
+        // 如果启用了代理
+        if (config.USE_PROXY) {
+          log(`正在通过代理使用Gemini生成随机问题...`, "info");
+          const httpsAgent = new HttpsProxyAgent(config.PROXY_URL);
+          requestConfig.httpsAgent = httpsAgent;
+        } else {
+          log(`正在直接使用Gemini生成随机问题...`, "info");
+        }
+      }
 
-      log(`正在使用Gemini生成随机问题...`, "info");
-
-      const response = await axios.post(apiUrl, payload, {
-        headers: {
-          "Content-Type": "application/json"
-        },
-        timeout: config.GEMINI_REQUEST_TIMEOUT || 30000 // 使用配置文件中的超时设置
-      });
+      const response = await axios.post(apiUrl, payload, requestConfig);
 
       if (response.data && response.data.candidates && response.data.candidates.length > 0) {
         const text = response.data.candidates[0].content.parts[0].text;
