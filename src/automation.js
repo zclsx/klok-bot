@@ -5,6 +5,7 @@ const { groq, apiManager } = require("./services");
 const { log, logToFile, checkLogSize } = require("./utils");
 const config = require("../config");
 
+// 直接使用配置文件中的线程数
 const THREADS = config.THREADS || 10;
 
 let isRunning = false;
@@ -170,11 +171,11 @@ async function runSingleAutomation(token, idx) {
         }
 
         if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-          localLog(`令牌 ${token.slice(0, 8)} 的错误过多 => 暂停 3 分钟`, "error");
-          await new Promise((r) => setTimeout(r, 180000));
+          localLog(`令牌 ${token.slice(0, 8)} 的错误过多 => 暂停 1 分钟`, "error");
+          await new Promise((r) => setTimeout(r, 60000));
           consecutiveErrors = 0;
         } else {
-          await new Promise((r) => setTimeout(r, 10000));
+          await new Promise((r) => setTimeout(r, 5000));
         }
         continue;
       }
@@ -186,11 +187,11 @@ async function runSingleAutomation(token, idx) {
         logToFile(`令牌 ${token.slice(0, 8)} 的积分更新错误`, { error: ptErr.message }, false);
       }
 
-      // 增加聊天间隔时间到约3分钟(180秒)
-      // 增加一些随机性，使间隔在160-200秒之间
-      const delay = Math.floor(Math.random() * 40000) + 160000; // 160000-200000毫秒
-      const delayMinutes = (delay / 60000).toFixed(1);
-      localLog(`令牌 ${token.slice(0, 8)} 休眠 ${delayMinutes} 分钟...`, "info");
+      // 使用配置文件中的聊天延迟设置
+      const delayRange = config.MAX_CHAT_DELAY - config.MIN_CHAT_DELAY;
+      const delay = Math.floor(Math.random() * delayRange) + config.MIN_CHAT_DELAY;
+      const delaySeconds = (delay / 1000).toFixed(1);
+      localLog(`令牌 ${token.slice(0, 8)} 休眠 ${delaySeconds} 秒...`, "info");
       await new Promise((r) => setTimeout(r, delay));
     }
 
