@@ -181,7 +181,7 @@ module.exports = {
   
   // 推荐码
   REFERRAL_CODE: {
-    referral_code: "GVJRESB4"
+    referral_code: "69NRRGJ"
   },
   
   // 请求间隔配置
