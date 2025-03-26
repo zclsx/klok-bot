@@ -89,8 +89,8 @@ function getProxyAgent(targetUrl) {
 const SESSION_TOKEN_PATH = path.join(process.cwd(), "session-token.key");
 
 const MAX_RETRIES = 5;
-const RETRY_DELAY_MS = 2000;
-const RETRY_MULTIPLIER = 1.5;
+const RETRY_DELAY_MS = config.REQUEST_RETRY_DELAY || 3000;
+const RETRY_MULTIPLIER = 1.2;
 
 let sessionToken = null;
 let cachedUserInfo = null;
@@ -150,7 +150,7 @@ async function verifyToken(token) {
       const agent = getProxyAgent(config.BASE_URL);
       const axiosConfig = {
         headers,
-        timeout: 10000,
+        timeout: config.REQUEST_TIMEOUT || 30000,
       };
       if (agent) {
         if (config.BASE_URL.startsWith("https")) {
@@ -359,7 +359,7 @@ async function getUserInfo(useCache = false) {
     const getUserRequest = async () => {
       logApiRequest("GET", `${config.BASE_URL}/me`, null, headers);
       const agent = getProxyAgent(config.BASE_URL);
-      const requestConfig = { headers, timeout: 10000 };
+      const requestConfig = { headers, timeout: config.REQUEST_TIMEOUT || 30000 };
       if (agent) {
         if (config.BASE_URL.startsWith("https")) {
           requestConfig.httpsAgent = agent;
@@ -390,7 +390,7 @@ async function makeApiRequest(method, endpoint, data = null, additionalHeaders =
     const apiRequest = async () => {
       logApiRequest(method, url, data, headers);
       const agent = getProxyAgent(url);
-      const requestConfig = { method, url, headers, timeout: 10000 };
+      const requestConfig = { method, url, headers, timeout: config.REQUEST_TIMEOUT || 30000 };
       if (agent) {
         if (url.startsWith("https")) {
           requestConfig.httpsAgent = agent;
@@ -431,7 +431,7 @@ async function makeApiRequestForToken(token, method, endpoint, data = null, addi
         method,
         url,
         headers,
-        timeout: 10000,
+        timeout: config.REQUEST_TIMEOUT || 30000,
       };
       if (agent) {
         if (url.startsWith("https")) {
